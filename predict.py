@@ -32,24 +32,20 @@ def test(file, model_user, model_news, tokenizer, device):
 			for j in range(len(history)):
 				prompt_user.append(prompt_gen(history[j]))
 			user_tokens = tokenizer(prompt_user, return_tensors="pt", padding=True)['input_ids'].to(device)
-			logits_user = model_user(user_tokens)[0]
+			logits_user = model_user(user_tokens)  # (1, dim)
 
 			# get news embeddings
 			for j in range(len(candidate)):
 				prompt_target.append(prompt_gen(candidate[j]))
 			target_tokens = tokenizer(prompt_target, return_tensors="pt", padding=True)['input_ids'].to(device)
-			logits = model_news(input_ids=target_tokens)[0]
-
-			# computing similarity
-			for j in range(len(candidate)):
-				score = torch.dot(logits[j], logits_user)
-				scores.append(score.item())
-			prediction = np.array(scores)
-			result_sort = np.argsort(-prediction)
-			result_final = np.empty([len(result_sort)], dtype = int) 
-			for j in range(len(result_sort)):
-				result_final[result_sort[j]] = j + 1  # start from 1
-			text = str(index)+" ["+','.join(str(i) for i in result_final)+"]\n"
+			logits_news = model_news(input_ids=target_tokens)  # (k, dim)
+			scores = logits_user @ logits_news
+			_, result_sort = torch.sort(-scores)
+			result_sort = (result_sort + 1).tolist()  # start from 1
+			# result_final = np.empty([len(result_sort)], dtype = int) 
+			# for j in range(len(result_sort)):
+			# 	result_final[result_sort[j]] = j + 1  
+			text = str(index)+" ["+','.join(str(i) for i in result_sort)+"]\n"
 			result.append(text)
 	
 	filename = "prediction.txt"
