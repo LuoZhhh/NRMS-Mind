@@ -1,6 +1,7 @@
 import random
 import torch
 import pandas as pd
+import torch.nn.functional as F
 
 from torch.utils.data import Dataset
 
@@ -78,7 +79,7 @@ class TestDataset(Dataset):
 
 
 def infonce_loss(h_user, h_news, temperature=0.01):
-    scores = (h_user @ h_news.T).squeeze()  # (5,)
+    scores = F.sigmoid((h_user @ h_news.T)).squeeze()  # (5,)
     pos_score = torch.exp(scores[0] / temperature)
     neg_score = torch.sum(torch.exp(scores[1:] / temperature))
     loss = -torch.log(pos_score / (pos_score + neg_score))
